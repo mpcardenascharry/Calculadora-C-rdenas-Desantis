@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>html,body{margin:0}[hidden]{display:none!important}</style>
+<title>Calculadora Cárdenas Desantis</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: hoja de antropometría. Selector de sexo arriba; cada medida es una fila con su campo, su referencia y su lectura. */
+:root{
+  --bg:#f2f4f7; --panel:#ffffff; --ink:#172033; --muted:#5a6579; --line:#d5dae3;
+  --accent:#34489a; --accent-soft:#e3e7f6;
+  --low:#1d5fa8; --low-soft:#dcebfa; --ok:#2c7a52; --ok-soft:#dcf1e5; --high:#b0531a; --high-soft:#fae6d6;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-data:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10141d; --panel:#181e2b; --ink:#e4e8f1; --muted:#98a2b6; --line:#2b3345;
+  --accent:#9aabf0; --accent-soft:#232c4d;
+  --low:#7db6f2; --low-soft:#16304d; --ok:#74c898; --ok-soft:#173526; --high:#f0a36c; --high-soft:#452a16; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141d; --panel:#181e2b; --ink:#e4e8f1; --muted:#98a2b6; --line:#2b3345;
+  --accent:#9aabf0; --accent-soft:#232c4d;
+  --low:#7db6f2; --low-soft:#16304d; --ok:#74c898; --ok-soft:#173526; --high:#f0a36c; --high-soft:#452a16; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:860px;margin:0 auto;padding-inline:16px;padding-block:28px 48px;display:grid;gap:18px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.6rem,4.5vw,2.3rem);line-height:1.1;margin:0;letter-spacing:-.015em;text-wrap:balance}
+.lede{margin:8px 0 0;color:var(--muted);max-width:62ch}
+.bar{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
+.field{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-weight:600;border:0;background:transparent;color:var(--ink);padding:8px 18px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--panel)}
+.btn{font:inherit;font-size:13.5px;border:1px solid var(--line);background:transparent;color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.count{display:flex;gap:8px;flex-wrap:wrap;font-size:13px}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px 16px 12px}
+.grp h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600;margin:18px 0 2px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 96px 132px;gap:10px 14px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.grp .row:first-of-type{border-top:0}
+.name{min-width:0}
+.name label{font-weight:500;display:block}
+.name .code{font-family:var(--f-data);font-size:12px;color:var(--accent)}
+.name .ref{font-family:var(--f-data);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;display:block;margin-top:1px}
+.row input{width:100%;font-family:var(--f-data);font-size:15px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-size:12.5px;font-weight:600;border-radius:20px;padding:4px 12px;white-space:nowrap;text-align:center;justify-self:start}
+.chip.na{color:var(--muted);border:1px dashed var(--line);font-weight:500}
+.chip.low{background:var(--low-soft);color:var(--low)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.high{background:var(--high-soft);color:var(--high)}
+.tag{display:inline-block;font-size:11px;font-weight:600;color:var(--high);background:var(--high-soft);border-radius:20px;padding:1px 9px}
+footer{font-size:12.5px;color:var(--muted);display:grid;gap:6px;max-width:74ch}
+@media (max-width:560px){
+  .row{grid-template-columns:minmax(0,1fr) 88px}
+  .row .chip{grid-column:1 / -1}
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Calculadora Cárdenas Desantis</h1>
+    <p class="lede">Escriba la medida del paciente en milímetros. La calculadora indica si está disminuida, normal o aumentada frente a los valores de referencia de adultos de Bogotá de 18 a 40 años.</p>
+  </header>
+
+  <section class="bar" aria-label="Ajustes">
+    <div class="field">
+      <span class="lbl" id="lblSexo">Sexo del paciente</span>
+      <div class="seg" role="group" aria-labelledby="lblSexo">
+        <button type="button" id="sexF" aria-pressed="true">Mujer</button>
+        <button type="button" id="sexM" aria-pressed="false">Hombre</button>
+      </div>
+    </div>
+    <div class="count" id="count" aria-live="polite"></div>
+    <div class="field">
+      <span class="tag" id="exTag">Ejemplo ficticio</span>
+      <button type="button" class="btn" id="btnClear">Limpiar</button>
+    </div>
+  </section>
+
+  <section class="sheet" id="sheet" aria-label="Medidas del paciente"></section>
+
+  <footer>
+    <span><strong>Criterio.</strong> Normal: entre la media menos 2 desviaciones estándar (DE) y la media más 2 DE del sexo elegido. Disminuido: por debajo de ese rango. Aumentado: por encima.</span>
+    <span><strong>Referencia.</strong> Estudio de dimorfismo sexual craneofacial, Universidad FUCS y Hospital de San José: 99 adultos de 18 a 40 años (61 mujeres y 38 hombres), sin cirugía facial previa ni malformaciones craneofaciales.</span>
+    <span>Herramienta de referencia. No reemplaza la valoración clínica. Los datos que escriba no se guardan ni se envían.</span>
+  </footer>
+</div>
+
+<script>
+// media y DE por sexo: [media F, DE F, media M, DE M]
+const MEAS = [
+  {g:"Cráneo y frente", v:"ft_ft", c:"ft-ft", n:"Ancho de la frente", r:[95.74,8.40,97.21,9.24]},
+  {g:"Cráneo y frente", v:"eu_eu", c:"eu-eu", n:"Ancho de la cabeza", r:[128.03,5.41,133.53,6.55]},
+  {g:"Cráneo y frente", v:"n_v", c:"n-v", n:"Altura de la frente", r:[70.26,9.22,81.61,10.03]},
+  {g:"Altura y ancho facial", v:"n_gn", c:"n-gn", n:"Altura facial total", r:[117.82,6.31,125.00,9.70]},
+  {g:"Altura y ancho facial", v:"n_sto", c:"n-sto", n:"Altura facial superior", r:[78.38,4.35,80.76,5.35]},
+  {g:"Altura y ancho facial", v:"sto_gn", c:"sto-gn", n:"Altura facial inferior", r:[39.44,3.91,43.70,5.22]},
+  {g:"Altura y ancho facial", v:"zy_zy", c:"zy-zy", n:"Ancho de la cara", r:[108.49,6.22,112.39,6.46]},
+  {g:"Altura y ancho facial", v:"go_go", c:"go-go", n:"Ancho de la mandíbula", r:[99.05,6.27,105.24,7.98]},
+  {g:"Profundidades faciales", v:"t_sn_d", c:"t-sn", n:"Profundidad del tercio medio, derecha", r:[116.05,5.70,123.79,7.36]},
+  {g:"Profundidades faciales", v:"t_sn_i", c:"t-sn", n:"Profundidad del tercio medio, izquierda", r:[115.52,5.40,123.55,5.68]},
+  {g:"Profundidades faciales", v:"t_gn_d", c:"t-gn", n:"Profundidad del tercio inferior, derecha", r:[126.92,6.48,137.32,8.10]},
+  {g:"Profundidades faciales", v:"t_gn_i", c:"t-gn", n:"Profundidad del tercio inferior, izquierda", r:[126.82,6.89,136.24,7.90]},
+  {g:"Región orbitaria", v:"en_en", c:"en-en", n:"Distancia intercantal interna", r:[31.44,2.84,31.87,2.86]},
+  {g:"Región orbitaria", v:"ex_ex", c:"ex-ex", n:"Distancia intercantal externa", r:[95.67,4.49,100.03,5.46]},
+  {g:"Nariz", v:"n_sn", c:"n-sn", n:"Longitud nasal", r:[54.85,3.40,56.92,4.78]},
+  {g:"Nariz", v:"al_al", c:"al-al", n:"Ancho nasal", r:[32.95,3.33,34.97,2.30]},
+  {g:"Nariz", v:"prn_sn", c:"prn-sn", n:"Proyección de la punta nasal", r:[16.36,2.39,17.66,2.25]},
+  {g:"Labios", v:"sn_sto", c:"sn-sto", n:"Altura total del labio superior", r:[20.97,2.34,22.34,2.11]},
+  {g:"Labios", v:"sn_ls", c:"sn-ls", n:"Altura cutánea del labio superior", r:[11.77,2.13,13.55,2.02]},
+  {g:"Labios", v:"sto_ls", c:"sto-ls", n:"Altura del bermellón superior", r:[9.20,1.45,8.79,1.54]},
+  {g:"Pabellón auricular", v:"pra_pa_d", c:"pra-pa", n:"Ancho auricular, derecho", r:[31.33,2.37,34.05,2.93]},
+  {g:"Pabellón auricular", v:"pra_pa_i", c:"pra-pa", n:"Ancho auricular, izquierdo", r:[31.25,2.26,34.32,2.59]},
+  {g:"Pabellón auricular", v:"sa_sba_d", c:"sa-sba", n:"Altura auricular, derecha", r:[57.85,3.36,61.74,3.77]},
+  {g:"Pabellón auricular", v:"sa_sba_i", c:"sa-sba", n:"Altura auricular, izquierda", r:[58.02,3.54,62.37,3.57]}
+];
+const K = 2; // número de DE que define el rango normal
+const EXAMPLE = {ft_ft:96,eu_eu:142,n_v:68,n_gn:119,n_sto:79,sto_gn:30,zy_zy:109,go_go:101,t_sn_d:117,t_sn_i:116,t_gn_d:128,t_gn_i:127,en_en:38,ex_ex:96,n_sn:55,al_al:33,prn_sn:16,sn_sto:21,sn_ls:12,sto_ls:9,pra_pa_d:31,pra_pa_i:31,sa_sba_d:58,sa_sba_i:58};
+
+let sex = "F";
+const fmt = (x,d=1)=>x.toLocaleString("es-CO",{minimumFractionDigits:d,maximumFractionDigits:d});
+const ref = m => sex==="F" ? {mean:m.r[0],sd:m.r[1]} : {mean:m.r[2],sd:m.r[3]};
+function classify(x, mean, sd){
+  if(x < mean - K*sd) return "low";
+  if(x > mean + K*sd) return "high";
+  return "ok";
+}
+const LABEL = {low:"Disminuido", ok:"Normal", high:"Aumentado"};
+
+const sheet = document.getElementById("sheet");
+let lastG = null, grp;
+MEAS.forEach(m=>{
+  if(m.g!==lastG){grp=document.createElement("div");grp.className="grp";grp.innerHTML=`<h2>${m.g}</h2>`;sheet.appendChild(grp);lastG=m.g}
+  const r=document.createElement("div");r.className="row";
+  r.innerHTML=`<div class="name"><label for="in_${m.v}">${m.n} <span class="code">${m.c}</span></label><span class="ref" id="ref_${m.v}"></span></div>
+    <input id="in_${m.v}" type="number" inputmode="decimal" step="0.5" min="0" placeholder="mm" aria-describedby="ref_${m.v}">
+    <span class="chip na" id="st_${m.v}">Sin dato</span>`;
+  grp.appendChild(r);
+  r.querySelector("input").addEventListener("input",()=>{document.getElementById("exTag").hidden=true;render()});
+});
+function val(v){const s=document.getElementById("in_"+v).value;const x=parseFloat(String(s).replace(",","."));return isFinite(x)&&x>0?x:null}
+function setValues(o){MEAS.forEach(m=>{document.getElementById("in_"+m.v).value = o && o[m.v]!=null ? o[m.v] : ""})}
+
+function render(){
+  const n={low:0,ok:0,high:0};
+  MEAS.forEach(m=>{
+    const R=ref(m), x=val(m.v), st=document.getElementById("st_"+m.v);
+    document.getElementById("ref_"+m.v).textContent =
+      `${fmt(R.mean)} ± ${fmt(R.sd)} · normal ${fmt(R.mean-K*R.sd)} a ${fmt(R.mean+K*R.sd)}`;
+    if(x==null){st.className="chip na";st.textContent="Sin dato";return}
+    const c=classify(x,R.mean,R.sd); n[c]++;
+    st.className="chip "+c; st.textContent=LABEL[c];
+  });
+  const total=n.low+n.ok+n.high, box=document.getElementById("count");
+  box.innerHTML = total
+    ? `<span class="chip low">${n.low} disminuidas</span><span class="chip ok">${n.ok} normales</span><span class="chip high">${n.high} aumentadas</span>`
+    : `<span class="chip na">Escriba las medidas</span>`;
+}
+function setSex(s){sex=s;document.getElementById("sexF").setAttribute("aria-pressed",s==="F");document.getElementById("sexM").setAttribute("aria-pressed",s==="M");render()}
+document.getElementById("sexF").onclick=()=>setSex("F");
+document.getElementById("sexM").onclick=()=>setSex("M");
+document.getElementById("btnClear").onclick=()=>{setValues(null);document.getElementById("exTag").hidden=true;render()};
+setValues(EXAMPLE); render();
+</script>
+</body>
+</html>
